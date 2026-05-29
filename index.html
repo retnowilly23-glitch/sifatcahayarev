@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animasi Cahaya Interaktif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Quicksand', 'Nunito', sans-serif;
+            background-color: #F5F7FA;
+        }
+
+        /* Container utama 16:9 */
+        .scene-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border-radius: 24px;
+            overflow: hidden;
+            background-color: #eee;
+            border: 4px solid white;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+
+        /* Gambar Latar Belakang - Layer Paling Bawah */
+        .bg-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        /* Hotspot/Tombol - Layer Atas */
+        .hotspot {
+            position: absolute;
+            cursor: pointer;
+            z-index: 50; /* Memastikan di atas gambar */
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .hotspot:hover {
+            transform: translate(-50%, -50%) scale(1.15);
+        }
+
+        /* Lingkaran Kuning Berdenyut */
+        .pulse-circle {
+            width: 35px;
+            height: 35px;
+            background: #FFD700;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.8); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 215, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+        }
+
+        /* Modal / Popup */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none; /* Default sembunyi */
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 30px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            position: relative;
+            text-align: center;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ef4444;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Animasi Sinar */
+        .light-ray {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: drawRay 2s ease-out forwards;
+        }
+
+        @keyframes drawRay {
+            from { stroke-dashoffset: 1000; }
+            to { stroke-dashoffset: 0; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <header class="text-center mb-8">
+        <h1 class="text-5xl font-bold text-gray-800">Ayo, mulai petualanganmu!</h1>
+        <p class="text-x1 font-medium text-gray-600 mt-2">Klik titik kuning pada gambar untuk mempelajari sifat cahaya.</p>
+    </header>
+
+    <main class="max-w-6xl mx-auto">
+        <div class="scene-container">
+            <img src="cahaya1.png" class="bg-image" alt="Background">
+
+            <div class="hotspot" style="top: 85%; left: 80%;" onclick="openModal('refraction')">
+                <div class="pulse-circle"></div>
+                <span class="bg-white text-black text-xs font-bold px-2 py-1 rounded shadow mt-2"></span>
+            </div>
+
+            <div class="hotspot" style="top: 32%; left: 75%;" onclick="openModal('absorption')">
+                <div class="pulse-circle"></div>
+                <span class="bg-white text-black text-xs font-bold px-2 py-1 rounded shadow mt-2"></span>
+            </div>
+
+            <div class="hotspot" style="top: 68%; left: 40%;" onclick="openModal('reflection')">
+                <div class="pulse-circle"></div>
+                <span class="bg-white text-black text-xs font-bold px-2 py-1 rounded shadow mt-2"></span>
+            </div>
+
+            <div class="hotspot" style="top: 25%; left: 35%;" onclick="openModal('straightRay')">
+                <div class="pulse-circle"></div>
+                <span class="bg-white text-black text-xs font-bold px-2 py-1 rounded shadow mt-2"></span>
+            </div>
+
+            <div class="hotspot" style="top: 18%; left: 57%;" onclick="openModal('dispersion')">
+                <div class="pulse-circle"></div>
+                <span class="bg-white text-black text-xs font-bold px-2 py-1 rounded shadow mt-2"></span>
+            </div>
+        </div>
+    </main>
+
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="document.getElementById('modalOverlay').style.display='none'">✕</button>
+            
+            <h2 id="modalTitle" class="text-2xl font-bold mb-4 text-gray-800"></h2>
+            
+            <div id="animationContainer" class="mb-2 rounded-xl p-4 border border-gray-200 min-h-[350px] flex items-center justify-center overflow-hidden"></div>
+            
+            <p id="modalDescription" class="text-gray-700 leading-relaxed px-4 mb-6 text-lg font-medium"></p>
+
+            <div class="flex justify-center border-t pt-4"> 
+                <button onclick="replayAnimation()" 
+                    class="w-full md:w-auto bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-xl text-sm font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                    🔄 Putar Kembali Animasi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentActiveId = '';
+        const phenomenaData = {
+            reflection: {
+                title: "Pemantulan Cahaya (Refleksi)",
+                description: "Cahaya memantul saat mengenai permukaan bening, seperti air atau cermin. Itulah sebabnya kamu bisa melihat bayangan di danau!",
+                animation: createReflectionSVG
+            },
+            absorption: {
+                title: "Cahaya Menembus Benda Bening",
+                description: "Cahaya matahari dapat melewati benda-benda transparan atau bening dengan mudah. Contohnya, cahaya bisa menembus dinding kaca transparan ini sehingga tanaman di dalam rumah kaca tetap bisa mendapatkan sinar untuk tumbuh subur!",
+                animation: createAbsorptionSVG
+            },
+            dispersion: {
+                title: "Penguraian Cahaya (Dispersi)",
+                description: "Cahaya putih matahari sebenarnya terdiri dari banyak warna yang terurai saat melewati tetesan air, membentuk pelangi!",
+                animation: createDispersionSVG
+            },
+            straightRay: {
+                title: "Cahaya Merambat Lurus",
+                description: "Cahaya matahari akan selalu bergerak mengikuti garis lurus selama melewati satu medium yang sama (seperti udara saja, atau air saja).",
+                animation: createStraightRaySVG
+            },
+            refraction: {
+                title: "Pembiasan Cahaya (Refraksi)",
+                description: "Cahaya berbelok saat masuk ke medium yang berbeda (dari udara ke air). Inilah yang membuat sedotan terlihat bengkok!",
+                animation: createRefractionSVG
+            }
+        };
+
+        function openModal(id) {
+            const sound = document.getElementById('popSound');
+                sound.currentTime = 0; // Meriset durasi ke awal agar bisa diputar berulang-ulang dengan cepat
+                sound.play();
+            currentActiveId = id;
+            const data = phenomenaData[id];
+            document.getElementById('modalTitle').innerText = data.title;
+            document.getElementById('modalDescription').innerText = data.description;
+            
+            const container = document.getElementById('animationContainer');
+            container.innerHTML = '';
+              if (id === 'dispersion') {
+                container.style.backgroundColor = '#1a1a1a'; 
+                } else {
+                container.style.backgroundColor = '#f9fafb'; 
+                }
+            container.appendChild(data.animation());
+            
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+        function replayAnimation() {
+            if (currentActiveId) {
+                const container = document.getElementById('animationContainer');
+                const data = phenomenaData[currentActiveId];
+        
+        // Kosongkan dan isi kembali untuk memicu animasi CSS (drawRay) dari awal
+                container.innerHTML = '';
+                setTimeout(() => {
+                    container.appendChild(data.animation());
+                }, 50);
+            }
+        }
+        function closeModal(e) {
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+
+        // Fungsi Animasi SVG Singkat
+        function createReflectionSVG() {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '300');
+            svg.setAttribute('viewBox', '0 0 400 300');
+            
+            const water = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            water.setAttribute('x', '0');
+            water.setAttribute('y', '150');
+            water.setAttribute('width', '400');
+            water.setAttribute('height', '150');
+            water.setAttribute('fill', '#4A90E2');
+            water.setAttribute('opacity', '0.3');
+            
+            const normal = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            normal.setAttribute('x1', '200');
+            normal.setAttribute('y1', '50');
+            normal.setAttribute('x2', '200');
+            normal.setAttribute('y2', '250');
+            normal.setAttribute('stroke', '#999');
+            normal.setAttribute('stroke-width', '2');
+            normal.setAttribute('stroke-dasharray', '5,5');
+            
+            const incident = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            incident.setAttribute('x1', '100');
+            incident.setAttribute('y1', '50');
+            incident.setAttribute('x2', '200');
+            incident.setAttribute('y2', '150');
+            incident.setAttribute('stroke', '#FFD700');
+            incident.setAttribute('stroke-width', '4');
+            incident.setAttribute('class', 'light-ray');
+            incident.setAttribute('marker-end', 'url(#arrowhead)');
+            
+            const reflected = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            reflected.setAttribute('x1', '200');
+            reflected.setAttribute('y1', '150');
+            reflected.setAttribute('x2', '300');
+            reflected.setAttribute('y2', '50');
+            reflected.setAttribute('stroke', '#FFD700');
+            reflected.setAttribute('stroke-width', '4');
+            reflected.setAttribute('class', 'light-ray');
+            reflected.setAttribute('marker-end', 'url(#arrowhead)');
+            reflected.style.animationDelay = '0.5s';
+            
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '10');
+            marker.setAttribute('refX', '5');
+            marker.setAttribute('refY', '3');
+            marker.setAttribute('orient', 'auto');
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', '0 0, 10 3, 0 6');
+            polygon.setAttribute('fill', '#FFD700');
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+            
+            const labelIncident = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            labelIncident.setAttribute('x', '120');
+            labelIncident.setAttribute('y', '80');
+            labelIncident.setAttribute('fill', '#333');
+            labelIncident.setAttribute('font-size', '16');
+            labelIncident.setAttribute('font-weight', 'bold');
+            labelIncident.textContent = 'Sinar Datang';
+            
+            const labelReflected = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            labelReflected.setAttribute('x', '240');
+            labelReflected.setAttribute('y', '80');
+            labelReflected.setAttribute('fill', '#333');
+            labelReflected.setAttribute('font-size', '16');
+            labelReflected.setAttribute('font-weight', 'bold');
+            labelReflected.textContent = 'Sinar Pantul';
+            
+            const labelWater = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            labelWater.setAttribute('x', '150');
+            labelWater.setAttribute('y', '180');
+            labelWater.setAttribute('fill', '#1976D2');
+            labelWater.setAttribute('font-size', '20');
+            labelWater.setAttribute('font-weight', 'bold');
+            labelWater.textContent = '💧 Permukaan air';
+            
+            const formula = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            formula.setAttribute('x', '120');
+            formula.setAttribute('y', '280');
+            formula.setAttribute('fill', '#FF6B6B');
+            formula.setAttribute('font-size', '22');
+            formula.setAttribute('font-weight', 'bold');
+            formula.textContent = 'θi = θr (θ datang = θ pantul)';
+            
+            svg.appendChild(defs);
+            svg.appendChild(water);
+            svg.appendChild(normal);
+            svg.appendChild(incident);
+            svg.appendChild(reflected);
+            svg.appendChild(labelIncident);
+            svg.appendChild(labelReflected);
+            svg.appendChild(labelWater);
+            svg.appendChild(formula);
+            
+            return svg;
+        }
+
+        function createAbsorptionSVG() {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '320');
+    svg.setAttribute('viewBox', '0 0 500 320');
+
+    // Langit latar belakang modal
+    const skyBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    skyBg.setAttribute('width', '500'); skyBg.setAttribute('height', '320');
+    skyBg.setAttribute('fill', '#f1f5f9');
+    svg.appendChild(skyBg);
+
+    // Matahari sebagai sumber cahaya
+    const sun = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    sun.setAttribute('cx', '60'); sun.setAttribute('cy', '60'); sun.setAttribute('r', '30');
+    sun.setAttribute('fill', '#FFD700');
+    svg.appendChild(sun);
+
+    // Pot Tanaman di dalam rumah kaca
+    const pot = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    pot.setAttribute('points', '320,240 380,240 370,270 330,270');
+    pot.setAttribute('fill', '#A0522D');
+    svg.appendChild(pot);
+
+    // Tanaman di dalam rumah kaca
+    const stem = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    stem.setAttribute('x1', '350'); stem.setAttribute('y1', '240');
+    stem.setAttribute('x2', '350'); stem.setAttribute('y2', '160');
+    stem.setAttribute('stroke', '#2E7D32'); stem.setAttribute('stroke-width', '6');
+    svg.appendChild(stem);
+
+    const leaf1 = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+    leaf1.setAttribute('cx', '330'); leaf1.setAttribute('cy', '190'); leaf1.setAttribute('rx', '20'); leaf1.setAttribute('ry', '10');
+    leaf1.setAttribute('fill', '#4CAF50'); leaf1.setAttribute('transform', 'rotate(-30 330 190)');
+    svg.appendChild(leaf1);
+
+    const leaf2 = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+    leaf2.setAttribute('cx', '370'); leaf2.setAttribute('cy', '170'); leaf2.setAttribute('rx', '20'); leaf2.setAttribute('ry', '10');
+    leaf2.setAttribute('fill', '#4CAF50'); leaf2.setAttribute('transform', 'rotate(30 370 170)');
+    svg.appendChild(leaf2);
+
+    // DINDING KACA BENING (Rumah Kaca)
+    // Dibuat agak kebiruan transparan dengan border tegas untuk penanda fisik "benda bening"
+    const glassWall = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    glassWall.setAttribute('x', '240'); glassWall.setAttribute('y', '80');
+    glassWall.setAttribute('width', '220'); glassWall.setAttribute('height', '200');
+    glassWall.setAttribute('fill', 'rgba(186, 230, 253, 0.25)'); // Transparan kebiruan
+    glassWall.setAttribute('stroke', '#0284c7');
+    glassWall.setAttribute('stroke-width', '4');
+    glassWall.setAttribute('stroke-dasharray', 'none');
+    svg.appendChild(glassWall);
+
+    // SINAR CAHAYA YANG MENEMBUS KACA
+    // Sinar Sebelum Menembus Kaca (Dari Matahari ke Dinding Kaca)
+    const rayBefore = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    rayBefore.setAttribute('x1', '80'); rayBefore.setAttribute('y1', '80');
+    rayBefore.setAttribute('x2', '240'); rayBefore.setAttribute('y2', '150');
+    rayBefore.setAttribute('stroke', '#FFB300'); rayBefore.setAttribute('stroke-width', '5');
+    rayBefore.setAttribute('class', 'light-ray');
+    svg.appendChild(rayBefore);
+
+    // Sinar Setelah Menembus Kaca (Dari Dinding Kaca ke Tanaman)
+    // Menggunakan animasi delay agar terlihat berjalan masuk setelah menembus dinding
+    const rayAfter = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    rayAfter.setAttribute('x1', '240'); rayAfter.setAttribute('y1', '150');
+    rayAfter.setAttribute('x2', '350'); rayAfter.setAttribute('y2', '198');
+    rayAfter.setAttribute('stroke', '#FFD700'); rayAfter.setAttribute('stroke-width', '5');
+    rayAfter.setAttribute('class', 'light-ray');
+    rayAfter.style.animationDelay = '0.8s'; // Efek jeda setelah menembus kaca
+    svg.appendChild(rayAfter);
+
+    // Efek Cahaya Berpendar pada Tanaman setelah terkena sinar
+    const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    glow.setAttribute('cx', '350'); glow.setAttribute('cy', '180'); glow.setAttribute('r', '45');
+    glow.setAttribute('fill', '#FFF59D'); glow.setAttribute('opacity', '0');
+    
+    // Animasi muncul pelan-pelan saat sinar sampai
+    const glowAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+    glowAnim.setAttribute('attributeName', 'opacity');
+    glowAnim.setAttribute('from', '0'); glowAnim.setAttribute('to', '0.4');
+    glowAnim.setAttribute('dur', '0.5s'); glowAnim.setAttribute('begin', '1.6s');
+    glowAnim.setAttribute('fill', 'freeze');
+    glow.appendChild(glowAnim);
+    svg.appendChild(glow);
+
+    // Label Penjelas Teks di dalam Animasi
+    const textOutside = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textOutside.setAttribute('x', '110'); textOutside.setAttribute('y', '190');
+    textOutside.setAttribute('fill', '#475569'); textOutside.setAttribute('font-size', '14'); textOutside.setAttribute('font-weight', 'bold');
+    textOutside.textContent = 'Luar Kaca';
+    svg.appendChild(textOutside);
+
+    const textInside = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textInside.setAttribute('x', '390'); textInside.setAttribute('y', '115');
+    textInside.setAttribute('fill', '#0284c7'); textInside.setAttribute('font-size', '14'); textInside.setAttribute('font-weight', 'bold');
+    textInside.textContent = 'Dalam Kaca';
+    svg.appendChild(textInside);
+
+    const textGlass = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textGlass.setAttribute('x', '240'); textGlass.setAttribute('y', '70');
+    textGlass.setAttribute('text-anchor', 'middle'); textGlass.setAttribute('fill', '#0369a1'); textGlass.setAttribute('font-size', '14'); textGlass.setAttribute('font-weight', 'bold');
+    textGlass.textContent = '💎 Benda Bening (Kaca)';
+    svg.appendChild(textGlass);
+
+    const mainLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    mainLabel.setAttribute('x', '250'); mainLabel.setAttribute('y', '305');
+    mainLabel.setAttribute('text-anchor', 'middle'); mainLabel.setAttribute('fill', '#059669'); mainLabel.setAttribute('font-size', '18'); mainLabel.setAttribute('font-weight', 'bold');
+    mainLabel.textContent = '✓ Cahaya menembus medium bening tanpa terhalang!';
+    svg.appendChild(mainLabel);
+
+    return svg;
+        }
+
+        function createDispersionSVG() {
+           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    // viewBox diperlebar sedikit (500) agar teks label tidak terpotong di kanan
+    svg.setAttribute('viewBox', '0 0 520 320');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '100%');
+
+    svg.innerHTML = `
+        <path d="M150,220 L250,220 L200,80 Z" fill="rgba(255,255,255,0.2)" stroke="#81D4FA" stroke-width="2"/>
+        
+        <line x1="0" y1="180" x2="185" y2="160" stroke="white" stroke-width="6" class="light-ray" 
+              style="filter: drop-shadow(0 0 5px white)"/>
+        
+        <path d="M210,160 Q300,100 420,40" stroke="#FF0000" fill="none" stroke-width="5" class="light-ray" style="animation-delay: 0.5s"/>
+        <text x="430" y="45" fill="#FF0000" font-size="12" font-weight="bold" class="light-ray" style="animation-delay: 0.6s">Merah</text>
+
+        <path d="M210,160 Q300,120 420,80" stroke="#FF7F00" fill="none" stroke-width="5" class="light-ray" style="animation-delay: 0.7s"/>
+        <text x="430" y="85" fill="#FF7F00" font-size="12" font-weight="bold" class="light-ray" style="animation-delay: 0.8s">Jingga</text>
+
+        <path d="M210,160 Q300,140 420,120" stroke="#FFFF00" fill="none" stroke-width="5" class="light-ray" style="animation-delay: 0.9s"/>
+        <text x="430" y="125" fill="#FFFF00" font-size="12" font-weight="bold" class="light-ray" style="animation-delay: 1.0s">Kuning</text>
+
+        <path d="M210,160 Q300,165 420,165" stroke="#00FF00" fill="none" stroke-width="5" class="light-ray" style="animation-delay: 1.1s"/>
+        <text x="430" y="170" fill="#00FF00" font-size="12" font-weight="bold" class="light-ray" style="animation-delay: 1.2s">Hijau</text>
+
+        <path d="M210,160 Q300,190 420,210" stroke="#0000FF" fill="none" stroke-width="5" class="light-ray" style="animation-delay: 1.3s"/>
+        <text x="430" y="215" fill="#0000FF" font-size="12" font-weight="bold" class="light-ray" style="animation-delay: 1.4s">Biru</text>
+
+        <path d="M210,160 Q300,215 420,250" stroke="#4B0082" fill="none" stroke-width="5" class="light-ray" style="animation-delay: 1.5s"/>
+        <text x="430" y="255" fill="#A450FF" font-size="12" font-weight="bold" class="light-ray" style="animation-delay: 1.6s">Nila</text>
+
+        <path d="M210,160 Q300,240 420,290" stroke="#9400D3" fill="none" stroke-width="5" class="light-ray" style="animation-delay: 1.7s"/>
+        <text x="430" y="295" fill="#9400D3" font-size="12" font-weight="bold" class="light-ray" style="animation-delay: 1.8s">Ungu</text>
+        
+        <text x="10" y="210" font-size="14" font-weight="bold" fill="white">Cahaya Putih</text>
+    `;
+    return svg;
+        }
+        function createRefractionSVG() {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '300');
+            svg.setAttribute('viewBox', '0 0 400 300');
+            
+            const air = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            air.setAttribute('x', '0');
+            air.setAttribute('y', '0');
+            air.setAttribute('width', '400');
+            air.setAttribute('height', '150');
+            air.setAttribute('fill', '#E3F2FD');
+            air.setAttribute('opacity', '0.5');
+            
+            const water = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            water.setAttribute('x', '0');
+            water.setAttribute('y', '150');
+            water.setAttribute('width', '400');
+            water.setAttribute('height', '150');
+            water.setAttribute('fill', '#4A90E2');
+            water.setAttribute('opacity', '0.4');
+            
+            const interfaceLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            interfaceLine.setAttribute('x1', '0');
+            interfaceLine.setAttribute('y1', '150');
+            interfaceLine.setAttribute('x2', '400');
+            interfaceLine.setAttribute('y2', '150');
+            interfaceLine.setAttribute('stroke', '#1976D2');
+            interfaceLine.setAttribute('stroke-width', '3');
+            interfaceLine.setAttribute('stroke-dasharray', '10,5');
+            
+            const normal = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            normal.setAttribute('x1', '200');
+            normal.setAttribute('y1', '50');
+            normal.setAttribute('x2', '200');
+            normal.setAttribute('y2', '250');
+            normal.setAttribute('stroke', '#999');
+            normal.setAttribute('stroke-width', '2');
+            normal.setAttribute('stroke-dasharray', '5,5');
+            
+            const incident = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            incident.setAttribute('x1', '100');
+            incident.setAttribute('y1', '50');
+            incident.setAttribute('x2', '200');
+            incident.setAttribute('y2', '150');
+            incident.setAttribute('stroke', '#FFD700');
+            incident.setAttribute('stroke-width', '4');
+            incident.setAttribute('class', 'light-ray');
+            
+            const refracted = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            refracted.setAttribute('x1', '200');
+            refracted.setAttribute('y1', '150');
+            refracted.setAttribute('x2', '230');
+            refracted.setAttribute('y2', '250');
+            refracted.setAttribute('stroke', '#FFD700');
+            refracted.setAttribute('stroke-width', '4');
+            refracted.setAttribute('class', 'light-ray');
+            refracted.style.animationDelay = '0.5s';
+            
+            const labelAir = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            labelAir.setAttribute('x', '20');
+            labelAir.setAttribute('y', '80');
+            labelAir.setAttribute('fill', '#333');
+            labelAir.setAttribute('font-size', '18');
+            labelAir.setAttribute('font-weight', 'bold');
+            labelAir.textContent = '☁️ Udara (cepat)';
+            
+            const labelWater = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            labelWater.setAttribute('x', '20');
+            labelWater.setAttribute('y', '200');
+            labelWater.setAttribute('fill', '#1976D2');
+            labelWater.setAttribute('font-size', '18');
+            labelWater.setAttribute('font-weight', 'bold');
+            labelWater.textContent = '💧 Air (lambat)';
+            
+            const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            arrow.setAttribute('x', '250');
+            arrow.setAttribute('y', '180');
+            arrow.setAttribute('fill', '#FF6B6B');
+            arrow.setAttribute('font-size', '40');
+            arrow.textContent = '↘️';
+            
+            const note = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            note.setAttribute('x', '100');
+            note.setAttribute('y', '280');
+            note.setAttribute('fill', '#FF6B6B');
+            note.setAttribute('font-size', '20');
+            note.setAttribute('font-weight', 'bold');
+            note.textContent = 'Cahaya berbelok saat masuk air!';
+            
+            svg.appendChild(air);
+            svg.appendChild(water);
+            svg.appendChild(interfaceLine);
+            svg.appendChild(normal);
+            svg.appendChild(incident);
+            svg.appendChild(refracted);
+            svg.appendChild(labelAir);
+            svg.appendChild(labelWater);
+            svg.appendChild(arrow);
+            svg.appendChild(note);
+            
+            return svg;
+        }
+        function createStraightRaySVG() {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '280');
+            svg.setAttribute('viewBox', '0 0 600 400');
+            
+            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bg.setAttribute('width', '600');
+            bg.setAttribute('height', '400');
+            bg.setAttribute('fill', '#E3F2FD');
+            svg.appendChild(bg);
+            
+            const sun = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            sun.setAttribute('cx', '100');
+            sun.setAttribute('cy', '100');
+            sun.setAttribute('r', '40');
+            sun.setAttribute('fill', '#FFD700');
+            svg.appendChild(sun);
+            
+            const sunGlow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            sunGlow.setAttribute('cx', '100');
+            sunGlow.setAttribute('cy', '100');
+            sunGlow.setAttribute('r', '50');
+            sunGlow.setAttribute('fill', '#FFF9C4');
+            sunGlow.setAttribute('opacity', '0.5');
+            svg.insertBefore(sunGlow, sun);
+            
+            const rayPaths = [
+                { x2: 300, y2: 200 },
+                { x2: 400, y2: 250 },
+                { x2: 500, y2: 150 },
+                { x2: 350, y2: 100 },
+                { x2: 450, y2: 300 }
+            ];
+            
+            rayPaths.forEach((path, i) => {
+                const rulerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                rulerLine.setAttribute('x1', '100');
+                rulerLine.setAttribute('y1', '100');
+                rulerLine.setAttribute('x2', path.x2);
+                rulerLine.setAttribute('y2', path.y2);
+                rulerLine.setAttribute('stroke', '#90CAF9');
+                rulerLine.setAttribute('stroke-width', '2');
+                rulerLine.setAttribute('stroke-dasharray', '5,5');
+                rulerLine.setAttribute('opacity', '0.4');
+                svg.appendChild(rulerLine);
+                
+                const ray = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                ray.setAttribute('x1', '100');
+                ray.setAttribute('y1', '100');
+                ray.setAttribute('x2', path.x2);
+                ray.setAttribute('y2', path.y2);
+                ray.setAttribute('stroke', '#FFD700');
+                ray.setAttribute('stroke-width', '6');
+                ray.setAttribute('stroke-linecap', 'round');
+                ray.setAttribute('class', 'light-ray');
+                ray.style.animationDelay = `${i * 0.2}s`;
+                svg.appendChild(ray);
+                
+                const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                particle.setAttribute('r', '8');
+                particle.setAttribute('fill', '#FFF9C4');
+                particle.setAttribute('opacity', '0.9');
+                
+                const animateMotion = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+                animateMotion.setAttribute('dur', '2s');
+                animateMotion.setAttribute('repeatCount', 'indefinite');
+                animateMotion.setAttribute('begin', `${i * 0.2}s`);
+                
+                const mpath = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+                const pathId = `ray-path-${i}`;
+                
+                const motionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                motionPath.setAttribute('id', pathId);
+                motionPath.setAttribute('d', `M 100 100 L ${path.x2} ${path.y2}`);
+                motionPath.setAttribute('fill', 'none');
+                svg.appendChild(motionPath);
+                
+                mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${pathId}`);
+                animateMotion.appendChild(mpath);
+                particle.appendChild(animateMotion);
+                svg.appendChild(particle);
+            });
+            
+            const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            title.setAttribute('x', '300');
+            title.setAttribute('y', '50');
+            title.setAttribute('text-anchor', 'middle');
+            title.setAttribute('fill', '#1976D2');
+            title.setAttribute('font-size', '28');
+            title.setAttribute('font-weight', 'bold');
+            title.textContent = '☀️ Cahaya Merambat Lurus!';
+            svg.appendChild(title);
+            
+            const explanation = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            explanation.setAttribute('x', '300');
+            explanation.setAttribute('y', '380');
+            explanation.setAttribute('text-anchor', 'middle');
+            explanation.setAttribute('fill', '#FF6B6B');
+            explanation.setAttribute('font-size', '22');
+            explanation.setAttribute('font-weight', 'bold');
+            explanation.textContent = '📏 Perhatikan: Tidak ada yang bengkok!';
+            svg.appendChild(explanation);
+            
+            return svg;
+        }
+
+        function createBaseSVG(content) {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 400 250');
+            svg.innerHTML = content;
+            return svg;
+        }
+        
+        
+    </script>
+    <audio id="popSound" src="click.mp3" preload="auto"></audio>
+</body>
+</html>
